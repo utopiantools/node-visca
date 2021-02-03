@@ -2,6 +2,7 @@ import * as udp from 'dgram'
 import { EventEmitter } from 'events'
 import { v4 as uuid } from 'uuid'
 import { ViscaTransport } from './transport'
+import { ViscaCommand } from './command'
 
 /*
 Creates a UDP server to receive VISCA over IP commands.
@@ -12,16 +13,24 @@ and to send camera replies back to the proper UDP clients.
 The Visca Controller should create one Server for each physical camera we want
 to expose to network control.
 */
+
+export interface UDPData {
+	uuid: string,
+	viscaCommand: ViscaCommand,
+}
+
 export class ViscaServer extends EventEmitter implements ViscaTransport {
 
 	public uuid: string;
 	public socket: udp.Socket;
 
-	constructor( port = 50000 ) {
+	constructor( public port = 50000 ) {
 		super();
 
 		this.uuid = uuid();
+	}
 
+	open() {
 		// creating a udp server
 		let socket = udp.createSocket( 'udp4' );
 
@@ -38,7 +47,7 @@ export class ViscaServer extends EventEmitter implements ViscaTransport {
 
 			// emit message up the chain
 			// this.emit('message', msg);
-			this.emit( 'data', ViscaCommand.fromPacket( msg ) );
+			this.emit( 'data', ViscaCommand.fromPacket( [...msg] ) );
 		} );
 
 		//emits when socket is ready and listening for datagram msgs
@@ -57,49 +66,62 @@ export class ViscaServer extends EventEmitter implements ViscaTransport {
 			console.log( 'Socket is closed !' );
 		} );
 
-		socket.bind( port );
+		socket.bind( this.port );
 		this.socket = socket;
 	}
 
-	write( packet ) {
-		this.socket.send( packet );
+	close() {
+		this.socket.close();
+	}
+
+	write( cmd: ViscaCommand ) {
+		this.socket.send( cmd.toPacket() );
 	}
 }
 
 // simply implements a visca transport over a udp socket
 export class UDPTransport extends EventEmitter {
 	debug = false;
-	constructor( public host:string  = '', public port = 50000 ) {
-		super();
-		this.host = host;
-		this.port = port;
-		this.uuid = uuid();
+	uuid: string;
+	socket: udp.Socket;
 
+	constructor( public host:string  = '', public port = -1 ) {
+		super();
+
+		this.host = host;
+		this.uuid = uuid();
+		this.open();
+	}
+
+	open() {
 		// creating a client socket
 		this.socket = udp.createSocket( 'udp4' );
 
 		// handle replies
-		socket.on( 'message', function ( msg, info ) {
+		this.socket.on( 'message', function ( msg, info ) {
 			console.log( 'Received %d bytes from %s:%d\n', msg.length, info.address, info.port );
-			this.onData( msg );
+			this.onData( [...msg] );
 		} );
 	}
 
-	onData( packet ) {
+	onData( packet:number[] ) {
 		console.log( 'Received: ', packet );
 		if ( this.debug ) console.log( 'Received: ' + packet );
 		let v = ViscaCommand.fromPacket( packet );
-		this.emit( 'data', { uuid: this.uuid, viscaCommand: v } );
+
+		this.emit( 'data', { uuid: this.uuid, viscaCommand: v } ); // this is UDPData
 	}
 
-	send( viscaCommand ) {
+	write( viscaCommand:ViscaCommand ) {
+		if (this.socket == null) this.open();
+
 		let packet = viscaCommand.toPacket();
 		if ( this.debug ) console.log( 'Sent: ' + packet );
 
 		// sending packet
 		this.socket.send( packet, this.port, this.host, function ( error ) {
 			if ( error ) {
-				client.close();
+				this.socket.close();
 			} else {
 				console.log( 'Data sent !!!' );
 			}

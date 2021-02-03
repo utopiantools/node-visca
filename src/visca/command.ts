@@ -6,10 +6,13 @@ import * as Parsers from './parsers'
 import { CamImageData, CamLensData, CamWideDParams, PTSpeed, PTPos, PTStatus } from './camera';
 
 
-// according to the documentation:
+// See related documentation:
 // https://ptzoptics.com/wp-content/uploads/2014/09/PTZOptics-VISCA-over-IP-Commands-Rev1_0-5-18.pdf
-// and from https://www.epiphan.com/userguides/LUMiO12x/Content/UserGuides/PTZ/3-operation/Commands.htm
+// https://www.epiphan.com/userguides/LUMiO12x/Content/UserGuides/PTZ/3-operation/VISCAcommands.htm
+// https://support.huawei.com/enterprise/en/doc/EDOC1000129687/8d49f1bf/visca-control-commands
 // and from the Sony EVI H100S User Manual
+// https://pro.sony/en_BA/support-resources/evi-h100s/manual
+// https://manualsbrain.com/en/manuals/1047691/
 //
 // |------packet (3-16 bytes)---------|
 // header     message        terminator

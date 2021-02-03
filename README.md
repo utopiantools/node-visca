@@ -1,5 +1,19 @@
 # node-visca
 
+## Description
+
+This is a complete implementation of the Sony VISCA Protocol for the [EVI-H100s](https://pro.sony/en_BA/support-resources/evi-h100s/manual) and similar cameras. It also contains commands to implement the additional features from [PTZOptics](https://ptzoptics.com/wp-content/uploads/2014/09/PTZOptics-VISCA-over-IP-Commands-Rev1_0-5-18.pdf) and [LUMiO12x](https://www.epiphan.com/userguides/LUMiO12x/Content/UserGuides/PTZ/3-operation/VISCAcommands.htm) cameras. The library assumes you know which commands will work on your cameras, but don't worry; commands not recognized by your camera will simply be ignored.
+
+## Installation
+
+From inside your project directory...
+
+```
+npm i @utopian/visca --save
+```
+
+## Usage
+
 ## Rationale...
 
 Of course, the main reason for this module is to fully implement the VISCA protocol without any reliance on `libvisca` the main C library for VISCA commands.

@@ -1,11 +1,36 @@
 import { EventEmitter } from 'events'
 
-import * as C from './constants'
+import { Constants as C } from './constants'
 import { ViscaCommand } from "./command"
 import { Camera } from "./camera"
 import { SerialTransport } from './visca-serial'
-import { UDPTransport, ViscaServer } from "./visca-ip"
-import { config } from '../config'
+import { UDPData, UDPTransport, ViscaServer } from "./visca-ip"
+
+interface ViscaCameraConfig {
+	id: number,
+	name: string,
+	ip: string,
+	port: number,
+}
+
+
+interface ViscaControllerConfig {
+	// serial port details for talking to visca cameras
+	viscaSerial: {
+		port: string,   // 'COM8' or /dev/ttyUSB0 etc
+		baud: number,   // usually 9600 or 38400
+	},
+
+	// configuration for visca-ip cameras
+	viscaIPCameras: ViscaCameraConfig[],
+
+	// configuration for the visca ip translation server
+	// the http server will reside at the basePort
+	// udp servers will exist at basePort + cameraIndex
+	viscaServer: {
+		basePort: 52380,
+	},
+}
 
 // the controller keeps track of the cameras connected by serial
 // it also communicates with cameras over IP
@@ -14,10 +39,11 @@ export class ViscaController extends EventEmitter {
 	serialConnection: SerialTransport;
 	ipServers: ViscaServer[] = [];
 	serialBroadcastCommands: ViscaCommand[] = []; // FIFO stack of serial commands sent
-	cameras: Camera[]
+	cameras: {[index:string]: Camera} = {};
+	cameraCount = 0;
 
-	construct() {
-		this.init();
+	constructor(public config: ViscaControllerConfig) {
+		super();
 	}
 
 	init() {
@@ -26,12 +52,12 @@ export class ViscaController extends EventEmitter {
 	}
 
 	// uuid will be specified when the data comes from an IP camera
-	addIPCamera(host, port) {
-		let transport = new UDPTransport(host, port);
+	addIPCamera(c: ViscaCameraConfig) {
+		let transport = new UDPTransport(c.ip, c.port);
 		transport.on('data', this.onUDPData);
 
 		let camera = new Camera(1, transport); // IP cameras all have index 1
-		cameras[transport.uuid] = camera;
+		this.cameras[transport.uuid] = camera;
 
 		camera.sendCommand(ViscaCommand.cmdInterfaceClearAll(1));
 		camera.inquireAll();
@@ -39,10 +65,10 @@ export class ViscaController extends EventEmitter {
 
 
 	// manage the serial transport
-	restartSerial() { this.close(); this.init(); this.start(); }
+	restartSerial() { this.closeSerial(); this.init(); this.startSerial(); }
 	closeSerial() { this.serialConnection.close(); }
 	startSerial(portname = "/dev/ttyUSB0", baudRate = 9600, timeout = 1, debug = false) {
-		this.serialConnection = SerialTransport(portname, timeout, baudRate, debug);
+		this.serialConnection = new SerialTransport(portname, timeout, baudRate, debug);
 		this.serialConnection.start();
 
 		// create callbacks
@@ -57,8 +83,8 @@ export class ViscaController extends EventEmitter {
 
 	onSerialOpen() { }
 	onSerialClose() { }
-	onSerialError(e) { console.log(e); }
-	onSerialData(viscaCommand) {
+	onSerialError(e:string) { console.log(e); }
+	onSerialData(viscaCommand:ViscaCommand) {
 		let v = viscaCommand;
 
 		// make sure we have this camera as an object if it came from a camera
@@ -68,7 +94,7 @@ export class ViscaController extends EventEmitter {
 		if (v.source != 0) {
 			if (!(v.source in this.cameras)) {
 				camera = new Camera(v.source, this.serialConnection);
-				camera.uuid = v.source;
+				camera.uuid = v.source.toString();
 				this.cameras[v.source] = camera;
 			} else {
 				camera = this.cameras[v.source];
@@ -85,7 +111,7 @@ export class ViscaController extends EventEmitter {
 			case C.MSGTYPE_IF_CLEAR:
 				// reset data for all serial port cameras
 				for (let cam of Object.values(this.cameras)) {
-					if (cam.uuid == cam.index) cam.clear();
+					if (cam.uuid == cam.index.toString()) cam._clear();
 				}
 				this.inquireAllSerial();
 				break;
@@ -105,15 +131,15 @@ export class ViscaController extends EventEmitter {
 		this.emit('update');
 	}
 
-	onUDPData({ uuid, viscaCommand }) {
-		let camera = cameras[uuid];
+	onUDPData({ uuid, viscaCommand }:UDPData) {
+		let camera = this.cameras[uuid];
 		return this.onCameraData(camera, viscaCommand);
 	}
 
-	onCameraData(camera, v) {
+	onCameraData(camera:Camera, v:ViscaCommand) {
 		switch (v.msgType) {
 			case C.MSGTYPE_IF_CLEAR:
-				camera.clear();
+				camera._clear();
 				break;
 
 			// network change messages are unprompted
@@ -144,18 +170,18 @@ export class ViscaController extends EventEmitter {
 		this.emit('update');
 	}
 
-	sendSerial(viscaCommand) {
-		this.serialConnection.send(viscaCommand);
+	sendSerial(viscaCommand:ViscaCommand) {
+		this.serialConnection.write(viscaCommand);
 	}
 
 	// forces a command to be a broadcast command (only applies to serial)
-	broadcastSerial(viscaCommand) {
+	broadcastSerial(viscaCommand:ViscaCommand) {
 		viscaCommand.broadcast = true;
-		this.serialConnection.send(viscaCommand);
+		this.serialConnection.write(viscaCommand);
 	}
 
 	// forces a command to go to a specific camera
-	sendToCamera(camera, viscaCommand) {
+	sendToCamera(camera:Camera, viscaCommand:ViscaCommand) {
 		camera.sendCommand(viscaCommand);
 	}
 
@@ -171,7 +197,7 @@ export class ViscaController extends EventEmitter {
 	// for each camera queue all the inquiry commands
 	// to get a full set of camera status data
 	inquireAllSerial() {
-		for (let camera of cameras) {
+		for (let camera of Object.values(this.cameras)) {
 			if (camera.transport == this.serialConnection) {
 				camera.inquireAll();
 			}
@@ -179,7 +205,7 @@ export class ViscaController extends EventEmitter {
 	}
 
 	inquireAllIP() {
-		for (let camera of cameras) {
+		for (let camera of Object.values(this.cameras)) {
 			if (camera.transport.uuid) {
 				camera.inquireAll();
 			}
@@ -191,12 +217,12 @@ export class ViscaController extends EventEmitter {
 	setupIPProxies() {
 		for (let server of this.ipServers) server.close();
 		this.ipServers = [];
-		for (let camera of this.cameras) {
+		for (let camera of Object.values(this.cameras)) {
 			if (camera.transport.uuid) continue;
 
-			let port = config.viscaServer.basePort + camera.index;
-			let server = ViscaServer(port);
-			server.on('data', (viscaCommand) => {
+			let port = this.config.viscaServer.basePort + camera.index;
+			let server = new ViscaServer(port);
+			server.on('data', (viscaCommand: ViscaCommand) => {
 				this.onCameraData(camera, viscaCommand);
 			});
 			this.ipServers.push(server);
@@ -204,24 +230,25 @@ export class ViscaController extends EventEmitter {
 	}
 
 	// for debugging
-	dump(packet, title = null) {
-		if (!packet || packet.length == 0 || !this.DEBUG) return;
+	dump(packet:number[], title:string = null) {
+		if (!packet || packet.length == 0) return;
 
-		header = packet[0];
-		term = packet[packet.length - 2]; // last item
-		qq = packet[1];
+		let header = packet[0];
+		let term = packet[packet.length - 2]; // last item
+		let qq = packet[1];
 
-		sender = (header & 0b01110000) >> 4;
-		broadcast = (header & 0b1000) >> 3;
-		recipient = header & 0b0111;
+		let sender = (header & 0b01110000) >> 4;
+		let broadcast = (header & 0b1000) >> 3;
+		let recipient = header & 0b0111;
+		let recipient_s;
 
 		if (broadcast) recipient_s = "*";
-		else recipient_s = str(recipient);
+		else recipient_s = recipient.toString();
 
 		console.log("-----");
 
 		if (title) console.log(`packet (${title}) [${sender} => ${recipient_s}] len=${packet.length}: ${packet}`);
-		else console.log(`packet [%d => %s] len=%d: %s` % (sender, recipient_s, packet.length, packet));
+		else console.log(`packet [${sender} => ${recipient_s}] len=${packet.length}: ${packet}`);
 
 		console.log(` QQ.........: ${qq}`);
 
@@ -229,7 +256,7 @@ export class ViscaController extends EventEmitter {
 		if (qq == 0x09) console.log("              (Inquiry)");
 
 		if (packet.length > 3) {
-			rr = packet[2];
+			let rr = packet[2];
 			console.log(` RR.........: ${rr}`);
 
 			if (rr == 0x00) console.log("              (Interface)");
@@ -237,7 +264,7 @@ export class ViscaController extends EventEmitter {
 			if (rr == 0x06) console.log("              (Pan/Tilter)");
 		}
 		if (packet.length > 4) {
-			data = packet.slice(3);
+			let data = packet.slice(3);
 			console.log(` Data.......: ${data}`);
 		} else console.log(" Data.......: null");
 
@@ -246,26 +273,26 @@ export class ViscaController extends EventEmitter {
 			return;
 		}
 		if (packet.length == 3 && (qq & 0b11110000) >> 4 == 4) {
-			socketno = qq & 0b1111;
+			let socketno = qq & 0b1111;
 			console.log(` packet: ACK for socket ${socketno}`);
 		}
 
 		if (packet.length == 3 && (qq & 0b11110000) >> 4 == 5) {
-			socketno = qq & 0b1111;
+			let socketno = qq & 0b1111;
 			console.log(` packet: COMPLETION for socket ${socketno}`);
 		}
 
 		if (packet.length > 3 && (qq & 0b11110000) >> 4 == 5) {
-			socketno = qq & 0b1111;
-			ret = packet.slice(2);
+			let socketno = qq & 0b1111;
+			let ret = packet.slice(2);
 			console.log(` packet: COMPLETION for socket ${socketno}, data=${ret}`);
 		}
 
 		if (packet.length == 4 && (qq & 0b11110000) >> 4 == 6) {
 			console.log(" packet: ERROR!");
 
-			socketno = qq & 0b00001111;
-			errcode = packet[2];
+			let socketno = qq & 0b00001111;
+			let errcode = packet[2];
 
 			//these two are special, socket is zero && has no meaning:
 			if (errcode == 0x02 && socketno == 0) console.log("        : Syntax Error");

@@ -27,6 +27,7 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
+    "@types/serialport": "^8.0.1",
     "@types/events": "^3.0.0",
     "@types/node": "^14.14.20",
     "@types/uuid": "^8.3.0"
