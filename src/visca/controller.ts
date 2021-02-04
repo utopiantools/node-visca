@@ -28,7 +28,7 @@ export interface ViscaControllerConfig {
 	// the http server will reside at the basePort
 	// udp servers will exist at basePort + cameraIndex
 	viscaServer: {
-		basePort: 52380,
+		basePort: number,
 	},
 }
 
