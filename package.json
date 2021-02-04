@@ -1,9 +1,9 @@
 {
-  "helpful-urls":[
+  "helpful-urls": [
     "https://medium.com/cameron-nokes/the-30-second-guide-to-publishing-a-typescript-package-to-npm-89d93ff7bccd"
   ],
   "name": "@utopian/visca",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "Advanced nodejs library for working with VISCA-based PTZ cameras over IP and over serial connections.",
   "main": "dist/visca.js",
   "types": "dist/visca.d.ts",
