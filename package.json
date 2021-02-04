@@ -1,6 +1,6 @@
 {
   "name": "@utopian/visca",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Advanced nodejs library for working with VISCA-based PTZ cameras over IP and over serial connections.",
   "main": "dist/visca.js",
   "types": "dist/visca.d.ts",
@@ -16,7 +16,9 @@
     "type": "git",
     "url": "git+https://github.com/utopiantools/node-visca.git"
   },
-  "files": ["dist/**/*"],
+  "files": [
+    "dist/**/*"
+  ],
   "keywords": [
     "visca",
     "sony",
