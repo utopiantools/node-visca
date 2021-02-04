@@ -8,7 +8,8 @@
     "build": "tsc",
     "preversion": "echo ordinarily we would execute this... npm test",
     "version": "npm run build && git add -A dist",
-    "postversion": "git push && git push --tags && rm -rf build/temp"
+    "postversion": "git push && git push --tags && rm -rf build/temp",
+    "publish": "npm version patch && npm publish --access public"
   },
   "repository": {
     "type": "git",
