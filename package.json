@@ -2,7 +2,8 @@
   "name": "@utopian/visca",
   "version": "0.0.8",
   "description": "Advanced nodejs library for working with VISCA-based PTZ cameras over IP and over serial connections.",
-  "main": "visca.js",
+  "main": "dist/visca.js",
+  "types": "dist/visca.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",

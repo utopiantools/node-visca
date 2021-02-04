@@ -1,4 +1,5 @@
 {
+	"declaration": true,
 	"compilerOptions": {
 		"sourceMap": true,
 		"esModuleInterop": true,
@@ -28,6 +29,6 @@
 	],
 	"exclude": [
 		"./node-gamepad",
-		"./build"
+		"./dist"
 	]
 }
