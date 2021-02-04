@@ -8,8 +8,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "preversion": "echo ordinarily we would execute this... npm test",
-    "version": "npm run build && git add -A dist",
-    "postversion": "git push && git push --tags && rm -rf build/temp",
+    "version": "npm run build",
+    "postversion": "git push && git push --tags",
     "publish-version": "npm version patch && npm publish --access public"
   },
   "repository": {
