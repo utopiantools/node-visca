@@ -1,6 +1,6 @@
 {
   "name": "@utopian/visca",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Advanced nodejs library for working with VISCA-based PTZ cameras over IP and over serial connections.",
   "main": "visca.js",
   "scripts": {
@@ -9,7 +9,6 @@
     "preversion": "echo ordinarily we would execute this... npm test",
     "version": "npm run build && git add -A dist",
     "postversion": "git push && git push --tags && rm -rf build/temp"
-
   },
   "repository": {
     "type": "git",
