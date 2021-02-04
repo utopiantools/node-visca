@@ -33,76 +33,76 @@ export enum DataType {
 }
 
 export enum CameraCmd {
-// == COMMAND TYPE CONSTANTS ==
-// camera settings codes                // data (pqrs is in i2v format)
-power = 0x00,                // (can inquire) ONVAL / OFFVAL
-sleep_time = 0x40,           // (not in the sony manual) 0p 0q 0r 0s
-icr = 0x01,                  // (can inquire) ONVAL / OFFVAL / infrared mode
-icr_auto = 0x51,             // (can inquire) ONVAL / OFFVAL / Auto dark-field mode
-icr_threshold = 0x21,        // (can inquire) 00 00 0p 0q / threshold level
-gain = 0x0C,                 // (cmd only) 00, 02, 03 / reset, up, down // CMD_CAM_VAL_RESET, CMD_CAM_VAL_UP, CMD_CAM_VAL_DOWN
-gain_limit = 0x2C,           // (can inquire) 0p / range from 4-F
-gain_direct = 0x4C,          // (can inquire) 00 00 0p 0q / gain position
-rgain = 0x03,                // (cmd only) same as gain command
-rgain_direct = 0X43,         // (can inquire) direct 00 00 0p 0q
-bgain = 0x04,                // (cmd only) same as gain command
-bgain_direct = 0X44,         // (can inquire) direct 00 00 0p 0q
-zoom = 0x07,                 // (cmd only) 0x00 (stop), T/W 0x02, 0x03, 0x2p, 0x3p (variable)
-dzoom = 0x06,                // (can inquire) ONVAL / OFFVAL
-zoom_direct = 0x47,          // (can inquire) pqrs: zoom value, optional tuvw: focus value
-focus = 0x08,                // data settings just like zoom
-focus_ir_correction = 0x11,  // (can inquire) 0x00, 0x01 // basic boolean
-focus_trigger = 0x18,        // (cmd only) 0x01 trigger now, 0x02 set to infinity
-focus_near_limit = 0x28,     // (can inquire) pqrs (i2v)
-focus_mode = 0x38,           // (can inquire) 0x02, 0x03, 0x10 | AUTO / MANUAL / AUTO+MANUAL (TOGGLE?)
-focus_direct = 0x48,         // (can inquire) pqrs (i2v)
-focus_af_mode = 0x57,        // (can inquire) 0x00, 0x01, 0x02 (normal (on movement), interval, on zoom)
-focus_af_interval = 0x27,    // (can inquire) pq: Movement time, rs: Interval time
-focus_high_sensitivity = 0x58,  // (can inquire) ONVAL / OFFVAL
-wb_mode = 0x35,              // (can inquire) 0-5 auto, indoor, outdoor, one-push, manual
-wb_trigger = 0x10,           // (cmd only) when followed by 0x05
-exposure_mode = 0x39,        // (can inquire) 00, 03, 0A, 0B, 0D / auto, manual, shutter, iris, bright
-shutter_mode = 0x5A,         // (can inquire) ONVAL / OFFVAL / auto, manual
-shutter = 0x0A,              // (cmd only) 00, 02, 03 / same as gain
-shutter_direct = 0x4A,       // (can inquire) 00 00 0p 0q
-iris = 0x0B,                 // (cmd only) CMD_CAM_VAL_RESET, CMD_CAM_VAL_UP, CMD_CAM_VAL_DOWN
-iris_direct = 0x4B,          // (can inquire) 00 00 0p 0q
-brightness = 0x0D,           // (cmd only) 00, 02, 03 / same as gain
-brightness_direct = 0x4D,    // (can inquire) 00 00 0p 0q
-exposure_comp = 0x0E,        // (cmd only) 00, 02, 03 / same as gain
-exposure_comp_active = 0x3E, // (can inquire) ON/OFF
-exposure_comp_direct = 0x4E, // (can inquire) 00 00 0p 0q
-backlight = 0x33,            // (can inquire) ON/OFF
-wide_dynamic = 0x3D,         // (can inquire) 0-4 / auto, on(ratio), on, off, on(hist)
-wide_dynamic_refresh = 0x10, // (cmd only) when followed by 0x0D
-wide_dynamic_direct = 0x2D,  // (can inquire) 0p 0q 0r 0s 0t 0u 00 00
+	// == COMMAND TYPE CONSTANTS ==
+	// camera settings codes                // data (pqrs is in i2v format)
+	power = 0x00,                // (can inquire) ONVAL / OFFVAL
+	sleep_time = 0x40,           // (not in the sony manual) 0p 0q 0r 0s
+	icr = 0x01,                  // (can inquire) ONVAL / OFFVAL / infrared mode
+	icr_auto = 0x51,             // (can inquire) ONVAL / OFFVAL / Auto dark-field mode
+	icr_threshold = 0x21,        // (can inquire) 00 00 0p 0q / threshold level
+	gain = 0x0C,                 // (cmd only) 00, 02, 03 / reset, up, down // CMD_CAM_VAL_RESET, CMD_CAM_VAL_UP, CMD_CAM_VAL_DOWN
+	gain_limit = 0x2C,           // (can inquire) 0p / range from 4-F
+	gain_direct = 0x4C,          // (can inquire) 00 00 0p 0q / gain position
+	rgain = 0x03,                // (cmd only) same as gain command
+	rgain_direct = 0X43,         // (can inquire) direct 00 00 0p 0q
+	bgain = 0x04,                // (cmd only) same as gain command
+	bgain_direct = 0X44,         // (can inquire) direct 00 00 0p 0q
+	zoom = 0x07,                 // (cmd only) 0x00 (stop), T/W 0x02, 0x03, 0x2p, 0x3p (variable)
+	dzoom = 0x06,                // (can inquire) ONVAL / OFFVAL
+	zoom_direct = 0x47,          // (can inquire) pqrs: zoom value, optional tuvw: focus value
+	focus = 0x08,                // data settings just like zoom
+	focus_ir_correction = 0x11,  // (can inquire) 0x00, 0x01 // basic boolean
+	focus_trigger = 0x18,        // (cmd only) 0x01 trigger now, 0x02 set to infinity
+	focus_near_limit = 0x28,     // (can inquire) pqrs (i2v)
+	focus_mode = 0x38,           // (can inquire) 0x02, 0x03, 0x10 | AUTO / MANUAL / AUTO+MANUAL (TOGGLE?)
+	focus_direct = 0x48,         // (can inquire) pqrs (i2v)
+	focus_af_mode = 0x57,        // (can inquire) 0x00, 0x01, 0x02 (normal (on movement), interval, on zoom)
+	focus_af_interval = 0x27,    // (can inquire) pq: Movement time, rs: Interval time
+	focus_high_sensitivity = 0x58,  // (can inquire) ONVAL / OFFVAL
+	wb_mode = 0x35,              // (can inquire) 0-5 auto, indoor, outdoor, one-push, manual
+	wb_trigger = 0x10,           // (cmd only) when followed by 0x05
+	exposure_mode = 0x39,        // (can inquire) 00, 03, 0A, 0B, 0D / auto, manual, shutter, iris, bright
+	shutter_mode = 0x5A,         // (can inquire) ONVAL / OFFVAL / auto, manual
+	shutter = 0x0A,              // (cmd only) 00, 02, 03 / same as gain
+	shutter_direct = 0x4A,       // (can inquire) 00 00 0p 0q
+	iris = 0x0B,                 // (cmd only) CMD_CAM_VAL_RESET, CMD_CAM_VAL_UP, CMD_CAM_VAL_DOWN
+	iris_direct = 0x4B,          // (can inquire) 00 00 0p 0q
+	brightness = 0x0D,           // (cmd only) 00, 02, 03 / same as gain
+	brightness_direct = 0x4D,    // (can inquire) 00 00 0p 0q
+	exposure_comp = 0x0E,        // (cmd only) 00, 02, 03 / same as gain
+	exposure_comp_active = 0x3E, // (can inquire) ON/OFF
+	exposure_comp_direct = 0x4E, // (can inquire) 00 00 0p 0q
+	backlight = 0x33,            // (can inquire) ON/OFF
+	wide_dynamic = 0x3D,         // (can inquire) 0-4 / auto, on(ratio), on, off, on(hist)
+	wide_dynamic_refresh = 0x10, // (cmd only) when followed by 0x0D
+	wide_dynamic_direct = 0x2D,  // (can inquire) 0p 0q 0r 0s 0t 0u 00 00
 
-// wide dynamic range settings
-// p: Screen display (0: Combined image, 2: Long-time, 3: Short-time)
-// q: Detection sensitivity (0: L 1: M 2: H)
-// r: Blocked-up shadow correction level (0: L 1: M 2: H 3: S)
-// s: Blown-out highlight correction level (0: L 1: M 2: H)
-// tu: Exposure ratio of short exposure (x1 to x64)
+	// wide dynamic range settings
+	// p: Screen display (0: Combined image, 2: Long-time, 3: Short-time)
+	// q: Detection sensitivity (0: L 1: M 2: H)
+	// r: Blocked-up shadow correction level (0: L 1: M 2: H 3: S)
+	// s: Blown-out highlight correction level (0: L 1: M 2: H)
+	// tu: Exposure ratio of short exposure (x1 to x64)
 
-aperture = 0x02,             // 00, 02, 03 / like gain
-aperture_direct = 0x42,      // (can inquire) 00 00 0p 0q / aperture gain
+	aperture = 0x02,             // 00, 02, 03 / like gain
+	aperture_direct = 0x42,      // (can inquire) 00 00 0p 0q / aperture gain
 
-hires_enable = 0x52,         // (can inquire) ON/OFF
-noise_reduction = 0x53,      // (can inquire) 0p / 0-5
-gamma = 0x5B,                // (can inquire) 0p / 0: standard, 1-4
-high_sensitivity = 0x5E,     // (can inquire) ON/OFF
-// freeze = 0x62,            // (can inquire) not supported by sony
-effect = 0x63,               // (can inquire) see data constants
-effect_digital = 0x64,       // (can inquire) see data constants
-effect_level = 0x65,         // (cmd only) intensity of digital effect
+	hires_enable = 0x52,         // (can inquire) ON/OFF
+	noise_reduction = 0x53,      // (can inquire) 0p / 0-5
+	gamma = 0x5B,                // (can inquire) 0p / 0: standard, 1-4
+	high_sensitivity = 0x5E,     // (can inquire) ON/OFF
+	// freeze = 0x62,            // (can inquire) not supported by sony
+	effect = 0x63,               // (can inquire) see data constants
+	effect_digital = 0x64,       // (can inquire) see data constants
+	effect_level = 0x65,         // (cmd only) intensity of digital effect
 
-chroma_suppress = 0x5F,      // (can inquire) 0-3 / Chroma Suppression level off, 1, 2, 3
-color_gain = 0x49,           // (can inquire) 00 00 00 0p / 0-E
-color_hue = 0x4F,            // (can inquire) 00 00 00 0p / 0-E
+	chroma_suppress = 0x5F,      // (can inquire) 0-3 / Chroma Suppression level off, 1, 2, 3
+	color_gain = 0x49,           // (can inquire) 00 00 00 0p / 0-E
+	color_hue = 0x4F,            // (can inquire) 00 00 00 0p / 0-E
 
-// misc other commands
-memory = 0x3F,               // (cmd only) 0a 0p / a: 0-reset, 1-set, 2-recall, p: memory bank 0-5
-id_set = 0x22,               // (can inquire) pqrs: give the camera an id from 0000-FFFF
+	// misc other commands
+	memory = 0x3F,               // (cmd only) 0a 0p / a: 0-reset, 1-set, 2-recall, p: memory bank 0-5
+	id_set = 0x22,               // (can inquire) pqrs: give the camera an id from 0000-FFFF
 }
 
 export enum CameraOpCmd {

@@ -3,8 +3,17 @@
 // For this JavaScript version, we eliminate all synchronous reads to the socket
 // in favor of using callbacks.
 
-import { ViscaController } from './controller';
-export let visca = { ViscaController }
+export * from './camera';
+export * from './command';
+export * from './constants';
+export * from './controller';
+export * from './enums';
+export * from './parsers';
+export * from './transport';
+export * from './visca-ip';
+export * from './visca-serial';
+
+// export ViscaController;
 
 
 /*

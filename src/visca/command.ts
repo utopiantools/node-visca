@@ -38,7 +38,7 @@ import { CamImageData, CamLensData, CamWideDParams, PTSpeed, PTPos, PTStatus } f
 // COMMAND ACK:      header 0x4y      0xff -- command accepted, y = socket (index of command in buffer)
 // COMMAND COMPLETE: header 0x5y      0xff -- command executed, y = socket (index of buffered command)
 // INQUIRY COMPLETE: header 0x50 data 0xff -- inquiry response data
-interface ViscaCommandParams {
+export interface ViscaCommandParams {
 	source?: number;
 	recipient?: any;
 	broadcast?: boolean;

@@ -6,7 +6,7 @@ import { Camera } from "./camera"
 import { SerialTransport } from './visca-serial'
 import { UDPData, UDPTransport, ViscaServer } from "./visca-ip"
 
-interface ViscaCameraConfig {
+export interface ViscaCameraConfig {
 	id: number,
 	name: string,
 	ip: string,
@@ -14,7 +14,7 @@ interface ViscaCameraConfig {
 }
 
 
-interface ViscaControllerConfig {
+export interface ViscaControllerConfig {
 	// serial port details for talking to visca cameras
 	viscaSerial: {
 		port: string,   // 'COM8' or /dev/ttyUSB0 etc
