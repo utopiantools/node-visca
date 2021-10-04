@@ -115,14 +115,14 @@ export class UDPTransport extends EventEmitter {
 	write( viscaCommand:ViscaCommand ) {
 		if (this.socket == null) this.open();
 
-		let packet = viscaCommand.toPacket();
+		let packet = Buffer.from(viscaCommand.toPacket());
 		if ( this.debug ) console.log( 'Sent: ' + packet );
 
 		// sending packet
-		this.socket.send( packet, this.port, this.host, function ( error ) {
+		this.socket.send( packet, this.port, this.host, ( error ) => {
 			if ( error ) {
 				this.socket.close();
-			} else {
+			} else if (this.debug) {
 				console.log( 'Data sent !!!' );
 			}
 		} );
