@@ -103,6 +103,9 @@ export class UDPTransport extends EventEmitter {
 			console.log( 'Received %d bytes from %s:%d\n', msg.length, info.address, info.port );
 			this.onData( [...msg] );
 		} );
+		this.socket.on("error", (e) => {
+			this.emit("error", e);
+		});
 	}
 
 	onData( packet:number[] ) {
@@ -153,7 +156,10 @@ export class TCPTransport extends EventEmitter {
 		this.socket.on( 'data', function ( msg ) {
 			console.log( 'Received %d bytes from %s:%d\n', msg.length );
 			this.onData( [...msg] );
-		} );
+		});
+		this.socket.on("error", (e) => {
+			this.emit("error", e);
+		});
 	}
 
 	onData( packet:number[] ) {
