@@ -1,4 +1,5 @@
 import * as udp from 'dgram'
+import * as net from 'net'
 import { EventEmitter } from 'events'
 import { v4 as uuid } from 'uuid'
 import { ViscaTransport } from './transport'
@@ -103,6 +104,9 @@ export class UDPTransport extends EventEmitter {
 			console.log( 'Received %d bytes from %s:%d\n', msg.length, info.address, info.port );
 			this.onData( [...msg] );
 		} );
+		this.socket.on("error", (e) => {
+			this.emit("error", e);
+		});
 	}
 
 	onData( packet:number[] ) {
@@ -116,16 +120,71 @@ export class UDPTransport extends EventEmitter {
 	write( viscaCommand:ViscaCommand ) {
 		if (this.socket == null) this.open();
 
-		let packet = viscaCommand.toPacket();
+		let packet = Buffer.from(viscaCommand.toPacket());
 		if ( this.debug ) console.log( 'Sent: ' + packet );
 
 		// sending packet
-		this.socket.send( packet, this.port, this.host, function ( error ) {
+		this.socket.send( packet, this.port, this.host, ( error ) => {
 			if ( error ) {
 				this.socket.close();
-			} else {
+			} else if (this.debug) {
 				console.log( 'Data sent !!!' );
 			}
 		} );
 	}
 }
+
+
+// simply implements a visca transport over a tcp socket
+export class TCPTransport extends EventEmitter {
+	debug = false;
+	uuid: string;
+	socket: net.Socket;
+
+	constructor( public host:string  = '', public port = -1 ) {
+		super();
+
+		this.host = host;
+		this.uuid = uuid();
+		this.open();
+	}
+
+	open() {
+		// creating a client socket
+		this.socket = new net.Socket();
+		this.socket.connect(this.port, this.host);
+		// handle replies
+		this.socket.on( 'data', function ( msg ) {
+			console.log( 'Received %d bytes from %s:%d\n', msg.length );
+			this.onData( [...msg] );
+		});
+		this.socket.on("error", (e) => {
+			this.emit("error", e);
+		});
+	}
+
+	onData( packet:number[] ) {
+		console.log( 'Received: ', packet );
+		if ( this.debug ) console.log( 'Received: ' + packet );
+		let v = ViscaCommand.fromPacket( packet );
+
+		this.emit( 'data', { uuid: this.uuid, viscaCommand: v } ); // this is UDPData
+	}
+
+	write( viscaCommand:ViscaCommand ) {
+		if (this.socket == null) this.open();
+
+		let packet = Buffer.from(viscaCommand.toPacket());
+		if ( this.debug ) console.log( 'Sent: ' + packet );
+
+		// sending packet
+		this.socket.write( packet, ( error ) => {
+			if ( error ) {
+				this.socket.end();
+			} else if (this.debug) {
+				console.log( 'Data sent !!!' );
+			}
+		} );
+	}
+}
+

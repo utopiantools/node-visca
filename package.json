@@ -13,6 +13,7 @@
     "preversion": "echo ordinarily we would execute this... npm test",
     "version": "npm run build",
     "postversion": "git push && git push --tags",
+    "prepare": "npm run build",
     "publish-version": "npm version patch && npm publish --access public"
   },
   "repository": {
