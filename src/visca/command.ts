@@ -112,12 +112,13 @@ export class ViscaCommand {
 		// data might be empty
 		this.dataType = dataType
 		this.data = data
-		this.packetHexString = this._hexify(data);
 		this.onComplete = onComplete;
 		this.onError = onError;
 		this.onAck = onAck;
 		this.dataParser = dataParser;
 		this.status = 0;
+
+		this.packetHexString = this._hexify(this.toPacket());
 	}
 
 	// private methods
@@ -206,7 +207,8 @@ export class ViscaCommand {
 		if (this.description == '') {
 			this.description = this._makeDescription()
 		}
-
+		
+		this.packetHexString = this._hexify(this.toPacket());
 		return JSON.stringify(this);
 	}
 
