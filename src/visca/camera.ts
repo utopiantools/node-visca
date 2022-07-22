@@ -456,14 +456,14 @@ export class Camera extends EventEmitter {
 	ack(viscaCommand: ViscaCommand) {
 		// get the first viscaCommand that expects an ACK
 		let [cmd] = this.sentCommands.splice(0, 1); // gets the head
-		cmd.ack(); // run the command ACK callback if it exists
+		cmd._handleAck(); // run the command ACK callback if it exists
 		this.cameraBuffers[viscaCommand.socket] = cmd;
 		this._scheduleUpdate();
 	}
 
 	complete(viscaCommand:ViscaCommand) {
 		let key = viscaCommand.socket.toString();
-		this.cameraBuffers[key].complete(viscaCommand.data);
+		this.cameraBuffers[key]._handleComplete(viscaCommand.data);
 		delete this.cameraBuffers[key];
 		this._scheduleUpdate();
 	}
@@ -490,7 +490,7 @@ export class Camera extends EventEmitter {
 				break;
 		}
 		console.log(`CAMERA ERROR: id: ${this.index}, command socket: ${viscaCommand.socket}, message: ${message}\nRECEIVED: ${viscaCommand.toString()}`);
-		this.cameraBuffers[socketKey].error(message);
+		this.cameraBuffers[socketKey]._handleError(message);
 		delete (this.cameraBuffers[socketKey]);
 		this._update();
 	}

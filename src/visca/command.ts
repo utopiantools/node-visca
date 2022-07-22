@@ -39,6 +39,7 @@ import { CamImageData, CamLensData, CamWideDParams, PTSpeed, PTPos, PTStatus } f
 // COMMAND COMPLETE: header 0x5y      0xff -- command executed, y = socket (index of buffered command)
 // INQUIRY COMPLETE: header 0x50 data 0xff -- inquiry response data
 export interface ViscaCommandParams {
+	description?: string;
 	source?: number;
 	recipient?: any;
 	broadcast?: boolean;
@@ -61,7 +62,7 @@ export class ViscaCommand {
 	socket: number;
 	dataType: number;
 	data: number[];
-	hexString: string = '';
+	packetHexString: string = '';
 	status: number;
 	description: string = '';
 
@@ -80,6 +81,8 @@ export class ViscaCommand {
 		recipient = -1,
 		broadcast = true,
 
+		description = '',
+
 		// message type (QQ in the spec)
 		msgType = C.MSGTYPE_COMMAND,
 		socket = 0,
@@ -95,6 +98,8 @@ export class ViscaCommand {
 		dataParser = Parsers.NoParser.parse,
 	}: ViscaCommandParams ) {
 
+		this.description = description
+
 		// header items
 		this.source = source
 		this.recipient = recipient
@@ -107,7 +112,7 @@ export class ViscaCommand {
 		// data might be empty
 		this.dataType = dataType
 		this.data = data
-		this.hexString = this._hexify(data);
+		this.packetHexString = this._hexify(data);
 		this.onComplete = onComplete;
 		this.onError = onError;
 		this.onAck = onAck;
@@ -115,16 +120,15 @@ export class ViscaCommand {
 		this.status = 0;
 	}
 
-	static fromPacket( packet: number[] ) {
-		let v = new ViscaCommand( {} );
-		v._parsePacket( packet );
-		return v;
-	}
-
-	static raw( recipient: number, raw: number[] ) {
-		let v = new ViscaCommand( { recipient } );
-		v._parsePacket( [ v.header(), ...raw, 0xff ] );
-		return v;
+	// private methods
+	_header() {
+		let header = 0x88;
+		// recipient overrides broadcast
+		if ( this.recipient > -1 ) this.broadcast = false;
+		if ( !this.broadcast ) {
+			header = 0b10000000 | ( this.source << 4 ) | ( this.recipient & 0x111 );
+		}
+		return header;
 	}
 
 	_hexify( data: number[] ) : string {
@@ -134,6 +138,8 @@ export class ViscaCommand {
 	}
 
 	_parsePacket( packet: number[] ) {
+		this.packetHexString = this._hexify(packet);
+
 		let header = packet[ 0 ];
 		this.source = ( header & C.HEADERMASK_SOURCE ) >> 4
 		this.recipient = header & C.HEADERMASK_RECIPIENT; // replies have recipient
@@ -151,53 +157,23 @@ export class ViscaCommand {
 				this.msgType = packet[ 1 ] & 0b11110000;
 		}
 		this.data = packet.slice( 2, packet.length - 1 ); // might be empty, ignore terminator
-		this.hexString = this._hexify(this.data);
 
 		// if data is more than one byte, the first byte determines the dataType
 		this.dataType = ( this.data.length < 2 ) ? 0 : this.data.splice( 0, 1 )[ 0 ];
 	}
 
-	// instance methods
-	header() {
-		let header = 0x88;
-		// recipient overrides broadcast
-		if ( this.recipient > -1 ) this.broadcast = false;
-		if ( !this.broadcast ) {
-			header = 0b10000000 | ( this.source << 4 ) | ( this.recipient & 0x111 );
-		}
-		return header;
-	}
-
-	toString() : string {
-		return JSON.stringify(this);
-	}
-
-	toPacket(): number[] {
-		let header = this.header();
-		let qq = this.msgType | this.socket;
-		let rr = this.dataType;
-		if ( rr > 0 )
-			return [ header, qq, rr, ...this.data, 0xff ];
-		else
-			return [ header, qq, ...this.data, 0xff ];
-	}
-
-	send( transport: ViscaTransport ) {
-		transport.write( this );
-	}
-
-	ack() {
+	_handleAck() {
 		this.status = C.MSGTYPE_ACK;
 		if ( this.onAck != null ) this.onAck();
 	}
 
-	error(err:string) {
+	_handleError(err:string) {
 		this.status = C.MSGTYPE_ERROR;
 		if ( this.onError != null ) this.onError(err);
 	}
 
 	// some command completions include data
-	complete( data: number[] = null ) {
+	_handleComplete( data: number[] = null ) {
 		this.status = C.MSGTYPE_COMPLETE;
 		if ( this.dataParser != null && data != null ) {
 			data = this.dataParser( data );
@@ -210,38 +186,93 @@ export class ViscaCommand {
 		}
 	}
 
+	// will lookup a description based on constant names
+	_makeDescription() :string {
+		// find message type
+		let msgTypeString = ''
+		let dataTypeString = ''
+		let cmdTypeString = null;
+		for (let key of Object.keys(C)) {
+			let val = C[key];
+			if (key.match(/MSGTYPE/) && val == this.msgType) msgTypeString = key;
+			else if (key.match(/DATATYPE/) && val == this.dataType) dataTypeString = key;
+			else if (this.data.length > 0 && val == this.data[0]) cmdTypeString = key;
+		}
+		return `(msg: ${msgTypeString}, type: ${dataTypeString}, command: ${cmdTypeString})`;
+	}
+
+	// public instance methods
+	toString() : string {
+		if (this.description == '') {
+			this.description = this._makeDescription()
+		}
+
+		return JSON.stringify(this);
+	}
+
+	toPacket(): number[] {
+		let header = this._header();
+		let qq = this.msgType | this.socket;
+		let rr = this.dataType;
+		if ( rr > 0 )
+			return [ header, qq, rr, ...this.data, 0xff ];
+		else
+			return [ header, qq, ...this.data, 0xff ];
+	}
+
+	send( transport: ViscaTransport ) {
+		transport.write( this );
+	}
+
+	// ---------------------
+	// static constructors
+	// ---------------------
+
+	static fromPacket( packet: number[] ) {
+		let v = new ViscaCommand( {} );
+		v._parsePacket( packet );
+		return v;
+	}
+
+	static raw( recipient: number, raw: number[] ) {
+		let v = new ViscaCommand( { recipient } );
+		v._parsePacket( [ v._header(), ...raw, 0xff ] );
+		return v;
+	}
+
 	// commands for each message type
-	static addressSet() {
-		return new ViscaCommand( { msgType: C.MSGTYPE_ADDRESS_SET, data: [ 1 ] } );
+	static cmd( recipient = -1, dataType: number, data: number[] = [], description: string = '' ) {
+		return new ViscaCommand( { msgType: C.MSGTYPE_COMMAND, dataType, recipient, data, description } );
 	}
-	static cmd( recipient = -1, dataType: number, data: number[] = [] ) {
-		return new ViscaCommand( { msgType: C.MSGTYPE_COMMAND, dataType, recipient, data } );
-	}
-	static inquire( recipient = -1, dataType: number, data: number[], onComplete: Function, dataParser: (x:number[])=>any ) {
-		return new ViscaCommand( { msgType: C.MSGTYPE_INQUIRY, dataType, recipient, data, dataParser, onComplete } );
+	static inquire( recipient = -1, dataType: number, data: number[], onComplete: Function, dataParser: (x:number[])=>any, description: string = '' ) {
+		return new ViscaCommand( { msgType: C.MSGTYPE_INQUIRY, dataType, recipient, data, dataParser, onComplete, description } );
 	}
 	static cancel( recipient = -1, socket = 0 ) {
-		return new ViscaCommand( { msgType: C.MSGTYPE_CANCEL | socket, recipient } );
+		return new ViscaCommand( { msgType: C.MSGTYPE_CANCEL | socket, recipient, description: `cancel command in buffer ${socket}` } );
+	}
+	static addressSet() {
+		// recipient is not needed because it should always start at the first camera
+		return new ViscaCommand( { msgType: C.MSGTYPE_ADDRESS_SET, data: [ 1 ] } );
 	}
 
 
 	// commands for each datatype
 	static cmdInterfaceClearAll( recipient = -1 ) {
-		return ViscaCommand.cmd( recipient, C.DATATYPE_INTERFACE, [ 0, 1 ] );
+		return ViscaCommand.cmd( recipient, C.DATATYPE_INTERFACE, [ 0, 1 ], 'interface clear all' );
 	}
-	static cmdCamera( recipient = -1, data: number[] = [] ) {
-		return ViscaCommand.cmd( recipient, C.DATATYPE_CAMERA, data );
+	static cmdCamera( recipient = -1, data: number[] = [], description: string = '') {
+		return ViscaCommand.cmd( recipient, C.DATATYPE_CAMERA, data, description );
 	}
-	static cmdOp( recipient = -1, data: number[] = [] ) {
-		return ViscaCommand.cmd( recipient, C.DATATYPE_OPERATION, data );
+	static cmdOp( recipient = -1, data: number[] = [], description: string = '' ) {
+		return ViscaCommand.cmd( recipient, C.DATATYPE_OPERATION, data, description );
 	}
 
 	// inquiry commands complete with data
-	static inqCamera( recipient = -1, query: number[], onComplete?: Function, dataParser?: (x:number[])=>any ) {
-		return ViscaCommand.inquire( recipient, C.DATATYPE_CAMERA, query, onComplete, dataParser );
+	static inqCamera( recipient = -1, query: number[], onComplete?: Function, dataParser?: (x:number[])=>any, description: string = '' ) {
+		return ViscaCommand.inquire( recipient, C.DATATYPE_CAMERA, query, onComplete, dataParser, description );
 	}
-	static inqOp( recipient = -1, query: number[], onComplete: Function, dataParser: (x:number[])=>any ) {
-		return ViscaCommand.inquire( recipient, C.DATATYPE_OPERATION, query, onComplete, dataParser );
+	static inqOp( recipient = -1, query: number[], onComplete: Function, dataParser: (x:number[])=>any, description: string = '' ) {
+		return ViscaCommand.inquire( recipient, C.DATATYPE_OPERATION, query, onComplete, dataParser, description );
 	}
 
 
@@ -251,31 +282,32 @@ export class ViscaCommand {
 	static cmdCameraPower( device: number, enable = false ) {
 		let powerval = enable ? C.DATA_ONVAL : C.DATA_OFFVAL;
 		let subcmd = [ C.CAM_POWER, powerval ];
-		return ViscaCommand.cmdCamera( device, subcmd );
+		return ViscaCommand.cmdCamera( device, subcmd, `camera power ${enable ? 'on' : 'off'}`);
 	}
 	static cmdCameraPowerAutoOff( device: number, time = 0 ) {
 		// time = minutes without command until standby
 		// 0: disable
 		// 0xffff: 65535 minutes
 		let subcmd = [ C.CAM_SLEEP_TIME, ...utils.i2v( time ) ];
-		return ViscaCommand.cmdCamera( device, subcmd )
+		return ViscaCommand.cmdCamera( device, subcmd, `camera power auto off after ${time} minutes` );
 	}
 
 	// PRESETS =========================
 	// Store custom presets if the camera supports them
+	// Prisual supports 0-255
 	// PTZOptics can store presets 0-127
 	// Sony has only 0-5
 	static cmdCameraPresetReset( device: number, preset = 0 ) {
 		let subcmd = [ C.CAM_MEMORY, C.DATA_MEMORY_RESET, preset ];
-		return ViscaCommand.cmdCamera( device, subcmd );
+		return ViscaCommand.cmdCamera( device, subcmd, `camera preset ${preset} reset` );
 	}
 	static cmdCameraPresetSet( device: number, preset = 0 ) {
 		let subcmd = [ C.CAM_MEMORY, C.DATA_MEMORY_SET, preset ];
-		return ViscaCommand.cmdCamera( device, subcmd );
+		return ViscaCommand.cmdCamera( device, subcmd, `camera preset ${preset} set` );
 	}
 	static cmdCameraPresetRecall( device: number, preset = 0 ) {
 		let subcmd = [ C.CAM_MEMORY, C.DATA_MEMORY_RECALL, preset ];
-		return ViscaCommand.cmdCamera( device, subcmd );
+		return ViscaCommand.cmdCamera( device, subcmd, `camera preset ${preset} recall` );
 	}
 
 	// PAN/TILT ===========================
@@ -288,7 +320,7 @@ export class ViscaCommand {
 	// y increases downward!!
 	static cmdCameraPanTilt( device: number, xspeed: number, yspeed: number, xmode: number, ymode: number ) {
 		let subcmd = [ C.OP_PAN_DRIVE, xspeed, yspeed, xmode, ymode ];
-		return ViscaCommand.cmdOp( device, subcmd );
+		return ViscaCommand.cmdOp( device, subcmd, 'camera pan/tilt' );
 	}
 	// x and y are signed 16 bit integers, 0x0000 is center
 	// range is -2^15 - 2^15 (32768)
@@ -298,10 +330,10 @@ export class ViscaCommand {
 		let ypos = utils.si2v( y );
 		let absrel = relative ? C.OP_PAN_RELATIVE : C.OP_PAN_ABSOLUTE;
 		let subcmd = [ absrel, xspeed, yspeed, ...xpos, ...ypos ];
-		return ViscaCommand.cmdOp( device, subcmd );
+		return ViscaCommand.cmdOp( device, subcmd, 'camera pan/tilt direct');
 	}
-	static cmdCameraPanTiltHome( device: number ) { return ViscaCommand.cmdOp( device, [ C.OP_PAN_HOME ] ) }
-	static cmdCameraPanTiltReset( device: number ) { return ViscaCommand.cmdOp( device, [ C.OP_PAN_RESET ] ) }
+	static cmdCameraPanTiltHome( device: number ) { return ViscaCommand.cmdOp( device, [ C.OP_PAN_HOME ], 'camera pan/tilt home' ) }
+	static cmdCameraPanTiltReset( device: number ) { return ViscaCommand.cmdOp( device, [ C.OP_PAN_RESET ], 'camera pan/tilt reset' ) }
 	
 	// corner should be C.DATA_PANTILT_UR or C.DATA_PANTILT_BL
 	static cmdCameraPanTiltLimitSet( device: number, corner: number, x: number, y: number ) {
