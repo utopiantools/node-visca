@@ -99,15 +99,16 @@ export class UDPTransport extends EventEmitter {
 
 		// handle replies
 		this.socket.on( 'message', function ( msg, info ) {
+			console.log( 'Data received from client : ' + msg.toString() );
 			console.log( 'Received %d bytes from %s:%d\n', msg.length, info.address, info.port );
 			this.onData( [...msg] );
 		} );
 	}
 
 	onData( packet:number[] ) {
-		console.log( 'Received: ', packet );
-		if ( this.debug ) console.log( 'Received: ' + packet );
+		console.log( 'Received: ', packet);
 		let v = ViscaCommand.fromPacket( packet );
+		console.log( 'PARSED VISCA COMMAND: ', v.toString());
 
 		this.emit( 'data', { uuid: this.uuid, viscaCommand: v } ); // this is UDPData
 	}

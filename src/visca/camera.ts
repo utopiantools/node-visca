@@ -28,6 +28,7 @@ export interface AFInterval {
 	intervalTime: number
 }
 
+/// PTStatus describes the pan/tilt status of a camera
 export class PTStatus {
 	public initStatus: number;
 	public initializing: boolean;
@@ -313,6 +314,7 @@ export class CameraStatus {
 
 export class Camera extends EventEmitter {
 	index: number;
+	name: string;
 	uuid: string;
 	transport: ViscaTransport;
 
@@ -337,11 +339,12 @@ export class Camera extends EventEmitter {
 	updatetimer: NodeJS.Timeout;
 
 	// transport should support the socket interface => .send(ViscaCommand)
-	constructor(index: number, transport: ViscaTransport) {
+	constructor(index: number, transport: ViscaTransport, name : string = '') {
 		super();
 		// typescript only infers these if the constructor arguments
 		// use the public or private keyword
 		this.index = index;
+		this.name = name;
 		this.transport = transport;
 		this.cameraBuffers = {}
 		this.sentCommands = [];            // FIFO stack for commands
@@ -397,6 +400,7 @@ export class Camera extends EventEmitter {
 			let [ cmd ] = this.inquiryQueue.splice(0, 1);
 			this.sendCommand(cmd);
 		}
+		this._updateBooleans();
 	}
 
 	_scheduleUpdate() {
@@ -421,8 +425,8 @@ export class Camera extends EventEmitter {
 
 		let queued = false;
 
-		// INTERFACE_DATA, ADDRESS_SET commands always get sent and aren't tracked
-		// keep track of other commands in order, so we can match replies to commands
+		// INTERFACE_DATA, ADDRESS_SET commands always get sent and aren't tracked.
+		// For inquiry commands, we need to keep track of them locally, so we can match replies to commands
 		if (command.msgType == C.MSGTYPE_INQUIRY) {
 			// only allow one non-ack command at a time
 			if (this.inquiryReady) {
@@ -444,6 +448,7 @@ export class Camera extends EventEmitter {
 			this._scheduleUpdate();
 		} else {
 			command.sentAt = Date.now();
+			console.log(`SENDING VISCA COMMAND: ${command.toString()}`)
 			this.transport.write(command);
 		}
 	}
@@ -469,23 +474,22 @@ export class Camera extends EventEmitter {
 		let socketKey = viscaCommand.socket.toString();
 		switch (errorType) {
 			case C.ERROR_SYNTAX:
-				message = `syntax error, invalid command`
+				message = `VISCA ERROR: syntax error, invalid command`
 				break;
 			case C.ERROR_BUFFER_FULL:
-				message = `command buffers full`
+				message = `VISCA ERROR: command buffers full`
 				break;
 			case C.ERROR_CANCELLED:
-				// command was cancelled
-				message = 'cancelled';
+				message = 'VISCA ERROR: command cancelled';
 				break;
 			case C.ERROR_INVALID_BUFFER:
-				message = `socket cannot be cancelled`
+				message = `VISCA ERROR: socket cannot be cancelled`
 				break;
 			case C.ERROR_COMMAND_FAILED:
-				message = `command failed`
+				message = `VISCA ERROR: command failed`
 				break;
 		}
-		console.log(`camera ${this.index}-${viscaCommand.socket}: ${message}`);
+		console.log(`CAMERA ERROR: id: ${this.index}, command socket: ${viscaCommand.socket}, message: ${message}\nRECEIVED: ${viscaCommand.toString()}`);
 		this.cameraBuffers[socketKey].error(message);
 		delete (this.cameraBuffers[socketKey]);
 		this._update();

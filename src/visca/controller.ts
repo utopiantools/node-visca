@@ -6,9 +6,14 @@ import { Camera } from "./camera"
 import { SerialTransport } from './visca-serial'
 import { UDPData, UDPTransport, ViscaServer } from "./visca-ip"
 
+// VISCA cameras are identified by an id which in hard-wired cameras is counted
+// upward from the first camera in the chain being #1. IP cameras are accessed
+// directly with their IP address and therefore always have an id of 1.
+//
+// [name] is a user-readable name for the camera.
 export interface ViscaCameraConfig {
-	id: number,
 	name: string,
+	id: number,
 	ip: string,
 	port: number,
 }
@@ -20,9 +25,6 @@ export interface ViscaControllerConfig {
 		port: string,   // 'COM8' or /dev/ttyUSB0 etc
 		baud: number,   // usually 9600 or 38400
 	},
-
-	// configuration for visca-ip cameras
-	viscaIPCameras: ViscaCameraConfig[],
 
 	// configuration for the visca ip translation server
 	// the http server will reside at the basePort
@@ -39,7 +41,7 @@ export class ViscaController extends EventEmitter {
 	serialConnection: SerialTransport;
 	ipServers: ViscaServer[] = [];
 	serialBroadcastCommands: ViscaCommand[] = []; // FIFO stack of serial commands sent
-	cameras: {[index:string]: Camera} = {};
+	cameras: {[index:string]: Camera} = {};       // will be indexed with uuid strings for ip cameras
 	cameraCount = 0;
 
 	constructor(public config: ViscaControllerConfig) {
@@ -47,20 +49,21 @@ export class ViscaController extends EventEmitter {
 	}
 
 	init() {
-		this.cameras = {};       // will be indexed with uuid strings for ip cameras
+		this.cameras = {};
 		this.cameraCount = 0;
 	}
 
-	// uuid will be specified when the data comes from an IP camera
-	addIPCamera(c: ViscaCameraConfig) {
+	// uuid will be generated when the data comes from an IP camera
+	addIPCamera(c: ViscaCameraConfig) : Camera {
 		let transport = new UDPTransport(c.ip, c.port);
-		transport.on('data', this.onUDPData);
+		transport.on('data', ({uuid, viscaCommand}) => this.onUDPData({uuid, viscaCommand}));
 
-		let camera = new Camera(1, transport); // IP cameras all have index 1
+		let camera = new Camera(1, transport, c.name); // IP cameras all have index 1
 		this.cameras[transport.uuid] = camera;
 
 		camera.sendCommand(ViscaCommand.cmdInterfaceClearAll(1));
 		camera.inquireAll();
+		return camera;
 	}
 
 

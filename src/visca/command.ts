@@ -61,11 +61,14 @@ export class ViscaCommand {
 	socket: number;
 	dataType: number;
 	data: number[];
+	hexString: string = '';
+	status: number;
+	description: string = '';
+
 	dataParser: (x:number[])=>any;
 	onAck: Function;
 	onComplete: Function;
 	onError: (x:string)=>void;
-	status: number;
 
 	// local metadata
 	addedAt: number;
@@ -104,7 +107,7 @@ export class ViscaCommand {
 		// data might be empty
 		this.dataType = dataType
 		this.data = data
-
+		this.hexString = this._hexify(data);
 		this.onComplete = onComplete;
 		this.onError = onError;
 		this.onAck = onAck;
@@ -122,6 +125,12 @@ export class ViscaCommand {
 		let v = new ViscaCommand( { recipient } );
 		v._parsePacket( [ v.header(), ...raw, 0xff ] );
 		return v;
+	}
+
+	_hexify( data: number[] ) : string {
+		let hex = []
+		for (let n of data) hex.push(n.toString(16));
+		return hex.join(' ');
 	}
 
 	_parsePacket( packet: number[] ) {
@@ -142,6 +151,7 @@ export class ViscaCommand {
 				this.msgType = packet[ 1 ] & 0b11110000;
 		}
 		this.data = packet.slice( 2, packet.length - 1 ); // might be empty, ignore terminator
+		this.hexString = this._hexify(this.data);
 
 		// if data is more than one byte, the first byte determines the dataType
 		this.dataType = ( this.data.length < 2 ) ? 0 : this.data.splice( 0, 1 )[ 0 ];
@@ -158,7 +168,11 @@ export class ViscaCommand {
 		return header;
 	}
 
-	toPacket() {
+	toString() : string {
+		return JSON.stringify(this);
+	}
+
+	toPacket(): number[] {
 		let header = this.header();
 		let qq = this.msgType | this.socket;
 		let rr = this.dataType;
