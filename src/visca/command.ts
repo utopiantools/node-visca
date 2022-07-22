@@ -266,15 +266,15 @@ export class ViscaCommand {
 	// PTZOptics can store presets 0-127
 	// Sony has only 0-5
 	static cmdCameraPresetReset( device: number, preset = 0 ) {
-		let subcmd = [ C.CAM_MEMORY, C.DATA_RESET, preset ];
+		let subcmd = [ C.CAM_MEMORY, C.DATA_MEMORY_RESET, preset ];
 		return ViscaCommand.cmdCamera( device, subcmd );
 	}
 	static cmdCameraPresetSet( device: number, preset = 0 ) {
-		let subcmd = [ C.CAM_MEMORY, C.DATA_RESET, preset ];
+		let subcmd = [ C.CAM_MEMORY, C.DATA_MEMORY_SET, preset ];
 		return ViscaCommand.cmdCamera( device, subcmd );
 	}
 	static cmdCameraPresetRecall( device: number, preset = 0 ) {
-		let subcmd = [ C.CAM_MEMORY, C.DATA_RESET, preset ];
+		let subcmd = [ C.CAM_MEMORY, C.DATA_MEMORY_RECALL, preset ];
 		return ViscaCommand.cmdCamera( device, subcmd );
 	}
 

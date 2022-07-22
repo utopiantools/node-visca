@@ -94,6 +94,7 @@ export class Constants {
     static CAM_EFFECT_LEVEL = 0x65;         // intensity of digital effect
 
     static CAM_MEMORY = 0x3F;               // 0a 0p / a: 0-reset, 1-set, 2-recall, p: memory bank 0-5
+    
     static CAM_ID_WRITE = 0x22;             // (can inquire) pqrs: give the camera an id from 0000-FFFF
     static CAM_CHROMA_SUPPRESS = 0x5F;      // (can inquire) 0-3 / Chroma Suppression level off, 1, 2, 3
     static CAM_COLOR_GAIN = 0x49;           // (can inquire) 00 00 00 0p / 0-E
@@ -219,6 +220,11 @@ export class Constants {
     static DATA_ONVAL = 0x02;
     static DATA_OFFVAL = 0x03;
     static DATA_TOGGLEVAL = 0x10;
+
+    static DATA_MEMORY_RESET = 0x00;
+    static DATA_MEMORY_SET = 0x01;
+    static DATA_MEMORY_RECALL = 0x02;
+
     static DATA_IR_CORRECTION_ENABLED = 0x01;
 
     static DATA_CAM_FOCUS_MODE_AUTO = 0x02;
