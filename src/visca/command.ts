@@ -163,30 +163,6 @@ export class ViscaCommand {
 		this.dataType = ( this.data.length < 2 ) ? 0 : this.data.splice( 0, 1 )[ 0 ];
 	}
 
-	_handleAck() {
-		this.status = C.MSGTYPE_ACK;
-		if ( this.onAck != null ) this.onAck();
-	}
-
-	_handleError(err:string) {
-		this.status = C.MSGTYPE_ERROR;
-		if ( this.onError != null ) this.onError(err);
-	}
-
-	// some command completions include data
-	_handleComplete( data: number[] = null ) {
-		this.status = C.MSGTYPE_COMPLETE;
-		if ( this.dataParser != null && data != null ) {
-			data = this.dataParser( data );
-		}
-		if ( this.onComplete != null ) {
-			if ( data == null || data.length == 0 )
-				this.onComplete();
-			else
-				this.onComplete( data );
-		}
-	}
-
 	// will lookup a description based on constant names
 	_makeDescription() :string {
 		// find message type
@@ -203,6 +179,32 @@ export class ViscaCommand {
 	}
 
 	// public instance methods
+
+	// these might be called from another file, so leave them public
+	handleAck() {
+		this.status = C.MSGTYPE_ACK;
+		if ( this.onAck != null ) this.onAck();
+	}
+
+	handleError(err:string) {
+		this.status = C.MSGTYPE_ERROR;
+		if ( this.onError != null ) this.onError(err);
+	}
+
+	// some command completions include data
+	handleComplete( data: number[] = null ) {
+		this.status = C.MSGTYPE_COMPLETE;
+		if ( this.dataParser != null && data != null ) {
+			data = this.dataParser( data );
+		}
+		if ( this.onComplete != null ) {
+			if ( data == null || data.length == 0 )
+				this.onComplete();
+			else
+				this.onComplete( data );
+		}
+	}
+
 	toString() : string {
 		if (this.description == '') {
 			this.description = this._makeDescription()
