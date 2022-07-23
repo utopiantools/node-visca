@@ -1,5 +1,4 @@
 
-import { v4 as uuid } from 'uuid'
 import { EventEmitter } from 'events'
 import { ViscaCommand as Command, ViscaCommand } from './command'
 import { Constants as C } from './constants'
@@ -456,14 +455,16 @@ export class Camera extends EventEmitter {
 	ack(viscaCommand: ViscaCommand) {
 		// get the first viscaCommand that expects an ACK
 		let [cmd] = this.sentCommands.splice(0, 1); // gets the head
-		cmd._handleAck(); // run the command ACK callback if it exists
-		this.cameraBuffers[viscaCommand.socket] = cmd;
+		if (cmd) {
+			cmd._handleAck(); // run the command ACK callback if it exists
+			this.cameraBuffers[viscaCommand.socket] = cmd;
+		}
 		this._scheduleUpdate();
 	}
 
 	complete(viscaCommand:ViscaCommand) {
 		let key = viscaCommand.socket.toString();
-		this.cameraBuffers[key]._handleComplete(viscaCommand.data);
+		this.cameraBuffers[key]?._handleComplete(viscaCommand.data);
 		delete this.cameraBuffers[key];
 		this._scheduleUpdate();
 	}
