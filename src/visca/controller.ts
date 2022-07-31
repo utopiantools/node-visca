@@ -72,13 +72,13 @@ export class ViscaController extends EventEmitter {
 	closeSerial() { this.serialConnection.close(); }
 	startSerial(portname = "/dev/ttyUSB0", baudRate = 9600, timeout = 1, debug = false) {
 		this.serialConnection = new SerialTransport(portname, timeout, baudRate, debug);
-		this.serialConnection.start();
+		//this.serialConnection.start();
 
 		// create callbacks
-		this.serialConnection.on('open', this.onSerialOpen);
-		this.serialConnection.on('close', this.onSerialClose);
-		this.serialConnection.on('error', this.onSerialError);
-		this.serialConnection.on('data', this.onSerialData);
+		this.serialConnection.on('open', this.onSerialOpen.bind(this));
+		this.serialConnection.on('close', this.onSerialClose.bind(this));
+		this.serialConnection.on('error', this.onSerialError.bind(this));
+		this.serialConnection.on('data', this.onSerialData.bind(this));
 
 		// send enumeration command (on reply, we will send the IF clear command)
 		this.enumerateSerial();
