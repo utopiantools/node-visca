@@ -491,7 +491,11 @@ export class Camera extends EventEmitter {
 				break;
 		}
 		console.log(`CAMERA ERROR: id: ${this.index}, command socket: ${viscaCommand.socket}, message: ${message}\nRECEIVED: ${viscaCommand.toString()}`);
-		this.cameraBuffers[socketKey].handleError(message);
+		if(this.cameraBuffers[socketKey]){
+			this.cameraBuffers[socketKey].handleError(message);
+		}else{
+			console.log("Error: Camera buffer missing!!!");
+		}
 		delete (this.cameraBuffers[socketKey]);
 		this._update();
 	}
