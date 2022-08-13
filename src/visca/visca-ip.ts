@@ -36,13 +36,13 @@ export class ViscaServer extends EventEmitter implements ViscaTransport {
 		let socket = udp.createSocket( 'udp4' );
 
 		// emits when any error occurs
-		socket.on( 'error', function ( error ) {
+		socket.on( 'error', ( error ) => {
 			console.log( 'Error: ' + error );
 			socket.close();
 		} );
 
 		// emits on new datagram msg
-		socket.on( 'message', function ( msg, info ) {
+		socket.on( 'message', ( msg, info ) => {
 			console.log( 'Data received from client : ' + msg.toString() );
 			console.log( 'Received %d bytes from %s:%d\n', msg.length, info.address, info.port );
 
@@ -52,7 +52,7 @@ export class ViscaServer extends EventEmitter implements ViscaTransport {
 		} );
 
 		//emits when socket is ready and listening for datagram msgs
-		socket.on( 'listening', function () {
+		socket.on( 'listening', () => {
 			let address = socket.address();
 			let port = address.port;
 			let family = address.family;
@@ -63,7 +63,7 @@ export class ViscaServer extends EventEmitter implements ViscaTransport {
 		} );
 
 		//emits after the socket is closed using socket.close();
-		socket.on( 'close', function () {
+		socket.on( 'close', () => {
 			console.log( 'Socket is closed !' );
 		} );
 
@@ -99,7 +99,7 @@ export class UDPTransport extends EventEmitter {
 		this.socket = udp.createSocket( 'udp4' );
 
 		// handle replies
-		this.socket.on( 'message', function ( msg, info ) {
+		this.socket.on( 'message', ( msg, info ) => {
 			console.log( 'Data received from client : ' + msg.toString() );
 			console.log( 'Received %d bytes from %s:%d\n', msg.length, info.address, info.port );
 			this.onData( [...msg] );
@@ -154,7 +154,7 @@ export class TCPTransport extends EventEmitter {
 		this.socket = new net.Socket();
 		this.socket.connect(this.port, this.host);
 		// handle replies
-		this.socket.on( 'data', function ( msg ) {
+		this.socket.on( 'data', ( msg ) => {
 			console.log( 'Received %d bytes from %s:%d\n', msg.length );
 			this.onData( [...msg] );
 		});
