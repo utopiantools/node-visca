@@ -21,7 +21,7 @@ export class v2siParser implements BaseParser {
 }
 
 export class IsOnParser implements BaseParser {
-	static parse = ( data: number[] ): boolean => data == [ C.DATA_ONVAL ];
+	static parse = ( data: number[] ): boolean => data?.[0] == C.DATA_ONVAL;
 }
 export class AFIntervalParser implements BaseParser {
 	static parse = ( data: number[] ) => Object.freeze( {
